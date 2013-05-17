@@ -26,12 +26,12 @@ class House < SQLObject
   set_attrs(:id, :address, :house_id)
 end
 
-# cat = Cat.find(1)
-# p cat
-# p cat.human
+cat = Cat.find(1)
+p cat
+p cat.human
 
-# human = Human.find(1)
-# p human.cats
+human = Human.find(1)
+p human.cats
 
-p human.house
-p cat.house
+# p human.house
+# p cat.house

@@ -17,44 +17,51 @@ class HasManyAssocParams
   end
 end
 
+class BelongsToAssocParams
+  attr_reader :other_class, :other_table_name, :primary_key, :foreign_key, :own_table_name
+
+  def initialize(owner, original, params)
+    @other_class = (params[:class_name].camelize || owner.to_s.camelize ).constantize
+    @other_table_name = other_class.table_name
+    @own_table_name = original.class.table_name
+    @primary_key = params[:primary_key] || "id"
+    @foreign_key = params[:foreign_key] || "#{other_class}_id"
+  end
+end
+
 module Associatable
 
   def belongs_to(owner, params=nil)
     define_method(owner) do
-      other_class = (params[:class_name].camelize || owner.to_s.camelize ).constantize
-      other_table_name = other_class.table_name
-      primary_key = params[:primary_key] || "id"
-      foreign_key = params[:foreign_key] || "#{other_class}_id"
+      bt = BelongsToAssocParams.new(owner, self, params)
 
       query = <<-SQL
         SELECT other.*
-          FROM #{self.class.table_name} AS original 
-          JOIN #{other_table_name} AS other
-            ON original.#{foreign_key} = other.#{primary_key}
-         WHERE original.#{primary_key} = ?
+          FROM #{bt.own_table_name} AS original 
+          JOIN #{bt.other_table_name} AS other
+            ON original.#{bt.foreign_key} = other.#{bt.primary_key}
+         WHERE original.#{bt.primary_key} = ?
       SQL
 
       result = DBConnection.execute(query, self.id)
-      other_class.parse_all(result)
+      bt.other_class.parse_all(result)
     end
   end
 
   def has_many(other, params=nil)
     define_method(other) do
-      aps = HasManyAssocParams.new(other, self, params)
+      hm = HasManyAssocParams.new(other, self, params)
 
       query = <<-SQL
         SELECT other.*
-          FROM #{aps.own_table_name} AS original 
-          JOIN #{aps.other_table_name} AS other
-            ON original.#{aps.primary_key} = other.#{aps.foreign_key}
-         WHERE original.#{aps.primary_key} = ?
+          FROM #{hm.own_table_name} AS original 
+          JOIN #{hm.other_table_name} AS other
+            ON original.#{hm.primary_key} = other.#{hm.foreign_key}
+         WHERE original.#{hm.primary_key} = ?
       SQL
 
-      puts query
-
       result = DBConnection.execute(query, self.id)
-      aps.other_class.parse_all(result)
+      hm.other_class.parse_all(result)
     end
     
   end
