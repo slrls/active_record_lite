@@ -29,7 +29,17 @@ module Associatable
       other_table_name = other_class.table_name
       primary_key = params[:primary_key] || "id"
       foreign_key = params[:foreign_key] || "#{other_class.to_s.downcase}_id"
-      
+
+      query = <<-SQL
+        SELECT other.*
+          FROM #{self.class.table_name} AS original 
+          JOIN #{other_table_name} AS other
+            ON original.#{primary_key} = other.#{foreign_key}
+         WHERE original.#{primary_key} = ?
+      SQL
+
+      result = DBConnection.execute(query, self.id)
+      other_class.parse_all(result)
     end
     
   end
