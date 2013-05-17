@@ -45,7 +45,7 @@ module Associatable
 
       query = <<-SQL
         SELECT other.*
-          FROM #{self.class.table_name} AS original 
+          FROM #{aps.own_table_name} AS original 
           JOIN #{aps.other_table_name} AS other
             ON original.#{aps.primary_key} = other.#{aps.foreign_key}
          WHERE original.#{aps.primary_key} = ?
