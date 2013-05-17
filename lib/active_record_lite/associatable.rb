@@ -4,7 +4,7 @@ require 'active_support/inflector'
 module Associatable
   def belongs_to(owner, params=nil)
     define_method(owner) do
-      other_class = (params[:class_name].camelize || owner.class.camelize ).constantize
+      other_class = (params[:class_name].camelize || owner.to_s.camelize ).constantize
       other_table_name = other_class.table_name
       primary_key = params[:primary_key] || "id"
       foreign_key = params[:foreign_key] || "#{other_class}_id"
@@ -23,11 +23,13 @@ module Associatable
   end
 
   def has_many(name, params=nil)
-    define_method("#{name}") do
-      other_class = (params[:class_name].camelize || name.class.singularize.camelize).constantize
+    define_method(name) do
+      other_class = (params[:class_name]|| name.to_s.singularize)
+      other_class = other_class.camelize.constantize
       other_table_name = other_class.table_name
       primary_key = params[:primary_key] || "id"
-      foreign_key = params[:foreign_key] || "#{other_class.class.downcase}_id"
+      foreign_key = params[:foreign_key] || "#{other_class.to_s.downcase}_id"
+      
     end
     
   end
