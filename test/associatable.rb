@@ -36,7 +36,5 @@ cat = Cat.find(1)
 p cat
 p cat.human
 
-
-
 p human.house
 p cat.house
