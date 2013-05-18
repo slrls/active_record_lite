@@ -3,44 +3,45 @@ require 'active_support/inflector'
 
   
 class HasManyAssocParams
-  attr_reader :other_class, :other_table_name, :primary_key, :foreign_key, :own_table_name
+  attr_reader :other_class, :other_table_name, :primary_key, :foreign_key
 
-  def initialize(other, original, params=nil)
-    @other_class = (params[:class_name]|| other.to_s.singularize)
-    @other_class = @other_class.camelize.constantize
-
+  def initialize(other, params)
+    @other_class_name = (params[:class_name]|| other.to_s.singularize).camelize
+    @other_class = @other_class_name.constantize
     @other_table_name = @other_class.table_name
-    @own_table_name = original.class.table_name
-
-    @primary_key = params[:primary_key] || "id"
-    @foreign_key = params[:foreign_key] || "#{@other_class.to_s.downcase}_id"
+    @primary_key = params[:primary_key] || :id
+    @foreign_key = params[:foreign_key] || "#{@other_class_name.underscore.downcase}_id".to_sym
   end
 end
 
 class BelongsToAssocParams
-  attr_reader :other_class, :other_table_name, :primary_key, :foreign_key, :own_table_name
+  attr_reader :other_class, :other_table_name, :primary_key, :foreign_key
 
-  def initialize(owner, original, params)
-    @other_class = (params[:class_name].camelize || owner.to_s.camelize ).constantize
-    @other_table_name = other_class.table_name
-    @own_table_name = original.class.table_name
-    @primary_key = params[:primary_key] || "id"
-    @foreign_key = params[:foreign_key] || "#{other_class}_id"
+  def initialize(owner, params)
+    @other_class_name = params[:class_name] || owner.to_s.camelize
+    @other_class = @other_class_name.constantize
+    @other_table_name = @other_class.table_name
+    @primary_key = params[:primary_key] || :id
+    @foreign_key = params[:foreign_key] || "#{@other_class_name}_id".to_sym
   end
 end
 
 module Associatable
 
-  def belongs_to(owner, params=nil)
-    define_method(owner) do
-      bt = BelongsToAssocParams.new(owner, self, params)
+  def assoc_params
+    @assoc_params ||= {}
+    @assoc_params
+  end
 
+  def belongs_to(owner, params = {})
+    bt = BelongsToAssocParams.new(owner, params)
+    assoc_params[owner] = bt
+
+    define_method(owner) do
       query = <<-SQL
         SELECT other.*
-          FROM #{bt.own_table_name} AS original 
-          JOIN #{bt.other_table_name} AS other
-            ON original.#{bt.foreign_key} = other.#{bt.primary_key}
-         WHERE original.#{bt.primary_key} = ?
+          FROM #{bt.other_table_name} AS other
+         WHERE other.#{bt.primary_key} = ?
       SQL
 
       result = DBConnection.execute(query, self.id)
@@ -48,21 +49,22 @@ module Associatable
     end
   end
 
-  def has_many(other, params=nil)
+  def has_many(other, params = {})
     define_method(other) do
-      hm = HasManyAssocParams.new(other, self, params)
+      hm = HasManyAssocParams.new(other, params)
 
       query = <<-SQL
         SELECT other.*
-          FROM #{hm.own_table_name} AS original 
-          JOIN #{hm.other_table_name} AS other
-            ON original.#{hm.primary_key} = other.#{hm.foreign_key}
-         WHERE original.#{hm.primary_key} = ?
+          FROM #{hm.other_table_name} AS other
+         WHERE other.#{hm.foreign_key} = ?
       SQL
 
       result = DBConnection.execute(query, self.id)
       hm.other_class.parse_all(result)
-    end
+    end    
+  end
+
+  def has_one_through(name, assoc1, assoc2)
     
   end
 end

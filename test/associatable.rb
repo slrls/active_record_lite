@@ -5,12 +5,10 @@ cats_db_file_name =
   File.expand_path(File.join(File.dirname(__FILE__), "cats.db"))
 DBConnection.open(cats_db_file_name)
 
-class Cat < SQLObject
-  set_table_name("cats")
-  set_attrs(:id, :name, :owner_id)
 
-  belongs_to :human, :class_name => "Human", :primary_key => :id, :foreign_key => :owner_id
-  #has_one_through :house, :human, :house
+class House < SQLObject
+  set_table_name("houses")
+  set_attrs(:id, :address, :house_id)
 end
 
 class Human < SQLObject
@@ -21,17 +19,24 @@ class Human < SQLObject
   belongs_to :house
 end
 
-class House < SQLObject
-  set_table_name("houses")
-  set_attrs(:id, :address, :house_id)
+class Cat < SQLObject
+  set_table_name("cats")
+  set_attrs(:id, :name, :owner_id)
+
+  belongs_to :human, :class_name => "Human", :primary_key => :id, :foreign_key => :owner_id
+  has_one_through :house, :human, :house
 end
 
-cat = Cat.find(1)
-p cat
-p cat.human
+
 
 human = Human.find(1)
-p human.cats
+# p human.cats
 
-# p human.house
-# p cat.house
+cat = Cat.find(1)
+# p cat
+# p cat.human
+
+
+
+p human.house
+p cat.house
