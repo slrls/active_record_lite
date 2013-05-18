@@ -5,12 +5,12 @@ require 'active_support/inflector'
 class HasManyAssocParams
   attr_reader :other_class, :other_table_name, :primary_key, :foreign_key
 
-  def initialize(other, params)
+  def initialize(other, original, params)
     @other_class_name = (params[:class_name]|| other.to_s.singularize).camelize
     @other_class = @other_class_name.constantize
     @other_table_name = @other_class.table_name
     @primary_key = params[:primary_key] || :id
-    @foreign_key = params[:foreign_key] || "#{@other_class_name.underscore.downcase}_id".to_sym
+    @foreign_key = params[:foreign_key] || "#{original.class.name.underscore}_id".to_sym
   end
 end
 
@@ -49,9 +49,9 @@ module Associatable
     end
   end
 
-  def has_many(other, params = {})
+  def has_many(other, params = {}, original)
     define_method(other) do
-      hm = HasManyAssocParams.new(other, params)
+    hm = HasManyAssocParams.new(other, params, original)
 
       query = <<-SQL
         SELECT other.*
@@ -65,6 +65,8 @@ module Associatable
   end
 
   def has_one_through(name, assoc1, assoc2)
-    
+    define_method(name) do
+      puts "SUCCESS"
+    end
   end
 end

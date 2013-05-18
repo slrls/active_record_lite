@@ -30,11 +30,11 @@ end
 
 
 human = Human.find(1)
-# p human.cats
+p human.cats
 
 cat = Cat.find(1)
-# p cat
-# p cat.human
+p cat
+p cat.human
 
 
 
