@@ -1,33 +1,36 @@
 require 'active_support/core_ext/object/try'
 require 'active_support/inflector'
 
-  
-class HasManyAssocParams
-  attr_reader :other_class, :other_table_name, :primary_key, :foreign_key
+class Helper
+  attr_reader :primary_key, :foreign_key, :other_class_name
 
-  def initialize(other, original, params)
-    @other_class_name = (params[:class_name]|| other.to_s.singularize).camelize
-    @other_class = @other_class_name.constantize
-    @other_table_name = @other_class.table_name
-    @primary_key = params[:primary_key] || :id
-    @foreign_key = params[:foreign_key] || "#{original.class.name.underscore}_id".to_sym
+  def other_class
+    @other_class_name.constantize
+  end
+
+  def other_table_name
+    other_class.table_name
   end
 end
 
-class BelongsToAssocParams
-  attr_reader :other_class, :other_table_name, :primary_key, :foreign_key
 
+class BelongsToAssocParams < Helper
   def initialize(owner, params)
-    @other_class_name = params[:class_name] || owner.to_s.camelize
-    @other_class = @other_class_name.constantize
-    @other_table_name = @other_class.table_name
+    @other_class_name = (params[:class_name] || owner.to_s).camelcase
     @primary_key = params[:primary_key] || :id
     @foreign_key = params[:foreign_key] || "#{@other_class_name.downcase}_id".to_sym
   end
 end
 
-module Associatable
+class HasManyAssocParams < Helper
+  def initialize(other, params, owner)
+    @other_class_name = (params[:class_name]|| other.to_s.singularize).camelcase
+    @primary_key = params[:primary_key] || :id
+    @foreign_key = params[:foreign_key] || "#{@owner.name.downcase}_id".to_sym
+  end
+end
 
+module Associatable
   def assoc_params
     @assoc_params ||= {}
     @assoc_params
@@ -39,24 +42,23 @@ module Associatable
 
     define_method(owner) do
       query = <<-SQL
-        SELECT other.*
-          FROM #{bt.other_table_name} AS other
-         WHERE other.#{bt.primary_key} = ?
+        SELECT #{bt.other_table_name}.*
+          FROM #{bt.other_table_name}
+         WHERE #{bt.other_table_name}.#{bt.primary_key} = ?
       SQL
 
-      result = DBConnection.execute(query, self.id)
+      result = DBConnection.execute(query, self.send(bt.foreign_key))
       bt.other_class.parse_all(result)
     end
   end
 
-  def has_many(other, params = {}, original)
+  def has_many(other, params = {})
     define_method(other) do
-    hm = HasManyAssocParams.new(other, params, original)
-
+    hm = HasManyAssocParams.new(other, params, self)
       query = <<-SQL
-        SELECT other.*
-          FROM #{hm.other_table_name} AS other
-         WHERE other.#{hm.foreign_key} = ?
+        SELECT #{hm.other_table_name}.*
+          FROM #{hm.other_table_name}
+         WHERE #{hm.other_table_name}.#{hm.foreign_key} = ?
       SQL
 
       result = DBConnection.execute(query, self.id)
@@ -82,3 +84,4 @@ module Associatable
     end
   end
 end
+

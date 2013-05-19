@@ -1,7 +1,6 @@
 class SQLObject < MassObject
-  extend Searchable
   extend Associatable
-  @table_name
+  extend Searchable
 
   def self.set_table_name(name)
     @table_name = name
