@@ -20,6 +20,10 @@ class BelongsToAssocParams < Helper
     @primary_key = params[:primary_key] || :id
     @foreign_key = params[:foreign_key] || "#{@other_class_name.downcase}_id".to_sym
   end
+
+  def type
+    :belongs_to
+  end
 end
 
 class HasManyAssocParams < Helper
@@ -67,20 +71,23 @@ module Associatable
   end
 
   def has_one_through(name, assoc1, assoc2)
-    ab = self.assoc_params[assoc1]
-    bc = ab.other_class.assoc_params[assoc2]
-
     define_method(name) do
-      query = <<-SQL
-        SELECT #{bc.other_table_name}.*
-          FROM #{ab.other_table_name}
-          JOIN #{bc.other_table_name}
-            ON #{ab.other_table_name}.#{bc.foreign_key} = #{bc.other_table_name}.#{bc.primary_key}
-         WHERE #{ab.other_table_name}.#{ab.primary_key} = ? 
-      SQL
+      ab = self.class.assoc_params[assoc1]
+      bc = ab.other_class.assoc_params[assoc2]
 
-      result = DBConnection.execute(query, self.id)
-      bc.other_class.parse_all(result)
+      if (ab.type == :belongs_to) && (bc.type == :belongs_to)
+        query = <<-SQL
+          SELECT #{bc.other_table_name}.*
+            FROM #{ab.other_table_name}
+            JOIN #{bc.other_table_name}
+              ON #{ab.other_table_name}.#{bc.foreign_key} = #{bc.other_table_name}.#{bc.primary_key}
+           WHERE #{ab.other_table_name}.#{ab.primary_key} = ? 
+        SQL
+
+        result = DBConnection.execute(query, self.id)
+        bc.other_class.parse_all(result)
+      end
+
     end
   end
 end

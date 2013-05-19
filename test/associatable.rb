@@ -1,5 +1,5 @@
 require 'active_record_lite'
-require 'debugger'
+
 # https://tomafro.net/2010/01/tip-relative-paths-with-file-expand-path
 cats_db_file_name =
   File.expand_path(File.join(File.dirname(__FILE__), "cats.db"))
@@ -13,11 +13,6 @@ class Cat < SQLObject
   has_one_through :house, :human, :house
 end
 
-class House < SQLObject
-  set_table_name("houses")
-  set_attrs(:id, :address, :house_id)
-end
-
 class Human < SQLObject
   set_table_name("humans")
   set_attrs(:id, :fname, :lname, :house_id)
@@ -26,14 +21,17 @@ class Human < SQLObject
   belongs_to :house
 end
 
-
-
-human = Human.find(1)
-p human.cats
+class House < SQLObject
+  set_table_name("houses")
+  set_attrs(:id, :address, :house_id)
+end
 
 cat = Cat.find(1)
 p cat
 p cat.human
 
+human = Human.find(1)
+p human.cats
 p human.house
+
 p cat.house
